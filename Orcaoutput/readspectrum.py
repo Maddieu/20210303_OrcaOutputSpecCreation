@@ -15,7 +15,9 @@ def readspectrum(content):
     spectrumdictionary = {}
 
     spectrumdictionary['Energy'] = [round(float(i.split()[1])*0.000123984193,4) for i in tempspec] # convert wavenumber to eV
-    spectrumdictionary['Intensity'] = [round(float(i.split()[3]),9) for i in tempspec] # read f_osc and set it as "Intensity"
+#    spectrumdictionary['Intensity'] = [round(float(i.split()[3]),9) for i in tempspec] # read f_osc and set it as "Intensity"
+    spectrumdictionary['Intensity'] = [round(float(i.split()[4]),9) for i in tempspec] # read T^2 and set it as "Intensity"
+
     spectrumdictionary['Index'] = [round(float(i.split()[0])) for i in tempspec]
     return spectrumdictionary
 

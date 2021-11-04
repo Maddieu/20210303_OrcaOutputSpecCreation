@@ -1,3 +1,14 @@
+"""
+
+this file is old and not used anymore
+
+look into orcaoutput2.py
+
+
+"""
+
+
+
 import numpy as np
 import os
 import readspectrum

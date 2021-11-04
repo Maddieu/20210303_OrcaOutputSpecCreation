@@ -4,40 +4,55 @@ import readspectrum
 from Classfile import Spectrumclass
 from matplotlib import pyplot as plt
 
-
+import shutil
 
 sigma = 0.3 # broadening for spectrum export
 
 folder_with_output_file = r'D:\OrcaData\20211027_MT_DyCp_specC_slowSCF_Roots1400_ompiotest'
 folder_with_output_file = r'D:\OrcaData\20211011_Olesya_Mn4O4_PBE0_tightenedSCF'
 
+folder_with_output_file = os.getcwd()
+os.chdir(folder_with_output_file)
+
+try:
+    shutil.rmtree('outputfolder')
+    print('deleted outputfolder')
+except Exception as err:
+    print(err)
+    print('no "outputfolder" to delete.')
+try:
+    os.mkdir('outputfolder')
+    print('outputfolder successfully created')
+except Exception as err:
+    print(err)
+    print('could not create output folder.')
+
+
 transitioncheck_dictionary = {}
 
 
 
-number_of_most_intense_analyzed_sticks = 20
+number_of_most_intense_analyzed_sticks = 20 # I think this is not used anywhere?
 
-first_acc_orbital = 70
-last_acc_orbital = 116
-last_acc_orbital = 72
-# spin up from 70
-# spin down from 65
-# until 116 + 1
+
+
+"""
+create the spectrum object of the class "Spectrumclass"
+- in the cwd, look for an .out file
+- read this .out file into "content"
+- extract from this content:
+-- the "spectrum": intensity vs energy for a stick
+-- the nature of this transition: this one stick is composed by x transitions from donor -> acceptor orbitals  
+
+participating_orbitals_dict gives us the min & max orbital for donor & acceptor for spin up (a) & spin down (b)
+"""
 
 
 spectrum = Spectrumclass(folder_with_output_file)
 participating_orbitals_dict = spectrum.return_participating_orbitals()
 
-"""
-    donor_spin_up_min
-    donor_spin_up_max
-    donor_spin_down_min
-    donor_spin_down_max
 
-    acceptor_spin_up_min
-    acceptor_spin_up_max
-    acceptor_spin_down_min
-    acceptor_spin_down_max"""
+# now we will start to define from which to which orbital we are going
 
 transitioncheck_dictionary['restrict_donor_orbitals_spinup'] = range(int(participating_orbitals_dict['donor_spin_up_min'][:-1]), int(participating_orbitals_dict['donor_spin_up_max'][:-1])+1)
 transitioncheck_dictionary['restrict_donor_orbitals_spindown'] = range(int(participating_orbitals_dict['donor_spin_down_min'][:-1]), int(participating_orbitals_dict['donor_spin_down_max'][:-1])+1)
@@ -46,8 +61,13 @@ transitioncheck_dictionary['restrict_donor_orbitals_spindown'] = range(int(parti
 first_acc_orbital = int(participating_orbitals_dict['acceptor_spin_up_min'][:-1])
 last_acc_orbital = int(participating_orbitals_dict['acceptor_spin_up_max'][:-1])
 
-print('first_acc_orbital:', first_acc_orbital)
-print('last_acc_orbital:', last_acc_orbital)
+print('first_acceptor_orbital:', first_acc_orbital)
+print('last_acceptor_orbital:', last_acc_orbital)
+
+
+"""
+now we will start walking through all the orbitals
+"""
 
 try:
     for n, acceptor_orbital in enumerate(participating_orbitals_dict['all_acceptor_orbitals']):
@@ -56,7 +76,7 @@ try:
             spin_state = 'spinup'
         if acceptor_orbital[-1] == 'b':
             spin_state = 'spindown'
-        label = f'{spin_state}_orbital{acceptor_orbital[:-1]}'
+        label = f'orbital{acceptor_orbital[:-1]}_{spin_state}'
         transitioncheck_dictionary[f'restrict_acceptor_orbitals_spindown'] = []
         transitioncheck_dictionary[f'restrict_acceptor_orbitals_spinup'] = []
         transitioncheck_dictionary[f'restrict_acceptor_orbitals_{spin_state}'] = [int(acceptor_orbital[:-1])]
@@ -67,22 +87,28 @@ try:
         print(f"looking into orbital transition {n} (i.e. acceptor orbital {acceptor_orbital}) from {len(participating_orbitals_dict['all_acceptor_orbitals'])}-1 total transitions.")
 
 
-
+        """
+        here we will look for one acceptor orbital how the partial_spectrum for this one orbital looks like 
+        """
 
         partial_spectrum = spectrum.checktransitions(transitioncheck_dictionary)
 
+
+        # take this partial spectrum and extract the energy (x) and intensity (y) out of it to be able to export
 
         x = [i['Energy'] for i in partial_spectrum]
         y = [i['Intensity'] for i in partial_spectrum]
 
 
+        # write all the sticks into a file
 
         with open(f'outputfolder{os.sep}output_{label}_stk.txt', 'w') as file:
             file.write('# ' + folder_with_output_file + '\n')
-            file.write(f'reduced_orbitals{label}_Energie\treduced_orbitals{label}_Normiert\n')
+            file.write(f'{label}_Energie\t{label}_Normiert\n')
             for element in zip(x, y):
                 file.write(str(element[0]) + '\t' + str(element[1]) + '\n')
 
+        # broaden the spectrum using numpy, thanks google
 
         def broaden_spectrum(E,osc,sigma,x):
             gE=[]
@@ -96,6 +122,7 @@ try:
         broadened_axis = np.linspace(min(spectrum.energy()) - 2, max(spectrum.energy()) + 2, num=1000, endpoint=True)
         gE = broaden_spectrum(x, y, sigma, broadened_axis)
 
+        # export the broadened spectrum into a txt file
 
         with open(f'outputfolder{os.sep}output_{label}_spec.txt', 'w') as file:
             # file.write('# ' + folder_with_output_file + '_' + label + '\n')
@@ -103,6 +130,7 @@ try:
             for element in zip(broadened_axis, gE):
                 file.write(str(round(element[0], 4)) + '\t' + str(round(element[1], 9)) + '\n')
 
+        # export the broadened spectrum into a png file
 
 
         plt.close()
