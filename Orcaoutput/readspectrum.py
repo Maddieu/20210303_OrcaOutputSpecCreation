@@ -14,8 +14,8 @@ def readspectrum(content):
 
     spectrumdictionary = {}
 
-    spectrumdictionary['Energy'] = [round(float(i.split()[1])*0.000123984193,4) for i in tempspec]
-    spectrumdictionary['Intensity'] = [round(float(i.split()[3]),9) for i in tempspec]
+    spectrumdictionary['Energy'] = [round(float(i.split()[1])*0.000123984193,4) for i in tempspec] # convert wavenumber to eV
+    spectrumdictionary['Intensity'] = [round(float(i.split()[3]),9) for i in tempspec] # read f_osc and set it as "Intensity"
     spectrumdictionary['Index'] = [round(float(i.split()[0])) for i in tempspec]
     return spectrumdictionary
 
@@ -34,6 +34,9 @@ def readcontributions(content):
         else:
             temptransitions.append(line)
             #print(line, end="")
+
+    if temptransitions[-1] == "\n" and temptransitions[-2] == "\n":
+        del temptransitions[-1]
 
     transitionsdictionary = {}
 
